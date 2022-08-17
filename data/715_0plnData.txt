@@ -1,0 +1,71 @@
+configName      Platooning
+iniFile         omnetpp.ini
+processID       3746
+runID           Platooning-0-20191231-13:23:00-3746
+totalRun        1
+currentRun      0
+currentConfig   Platooning
+sim timeStep    100 ms
+startDateTime   2019-12-31 13:23:00.384
+endDateTime     2019-12-31 13:23:15.384
+duration        0 hour, 0 minute, 15 second
+
+
+timeStep    vehId          fromState                     toState                       commandSent    receiverId     senderPltId    receiverPltId    maneuverStartEnd 
+
+
+0.00        veh            state_idle                    state_platoonLeader           -              -              -              -                -                
+
+0.00        veh.1          state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh.2          state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh.3          state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh.4          state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh1           state_idle                    state_platoonLeader           -              -              -              -                -                
+
+0.00        veh1.1         state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh1.2         state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh            state_platoonLeader           state_sendSplitReq            -              -              -              -                -                
+0.00        veh            state_sendSplitReq            state_waitForSplitReply       SPLIT_REQ      veh.4          veh            veh              -                
+
+0.05        veh.4          state_platoonFollower         state_waitForCHANGEPL         SPLIT_ACCEPT   veh            veh            veh              -                
+
+0.06        veh            state_waitForSplitReply       state_makeItFreeAgent         -              -              -              -                Split_Start      
+0.06        veh            state_makeItFreeAgent         state_waitForAck              CHANGE_PL      veh.4          veh            veh              -                
+
+0.13        veh.4          state_waitForCHANGEPL         state_sendingACK              -              -              -              -                -                
+0.13        veh.4          state_sendingACK              state_waitForSplitDone        ACK            veh            veh.4          veh.4            -                
+
+0.20        veh            state_waitForAck              state_splitDone               -              -              -              -                -                
+0.20        veh            state_splitDone               state_platoonLeader           CHANGE_Tg      multicast      veh            veh              -                
+0.20        veh            state_splitDone               state_platoonLeader           SPLIT_DONE     veh.4          veh            veh              -                
+
+0.26        veh.4          state_waitForSplitDone        state_waitForGap              -              -              -              -                -                
+
+0.86        veh.4          state_waitForGap              state_platoonLeader           GAP_CREATED    veh            veh.4          veh              Split_End        
+
+45.06       veh.4          state_platoonLeader           state_sendMergeReq            -              -              -              -                -                
+45.06       veh.4          state_sendMergeReq            state_waitForMergeReply       MERGE_REQ      veh            veh.4          veh              Merge_Request    
+
+45.13       veh            state_platoonLeader           state_sendMergeAccept         -              -              -              -                -                
+45.13       veh            state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh.4          veh            veh.4            -                
+
+45.22       veh.4          state_waitForMergeReply       state_mergeAccepted           -              -              -              -                Merge_Start      
+45.22       veh.4          state_mergeAccepted           state_waitForCatchup          -              -              -              -                -                
+
+50.13       veh            state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+50.13       veh            state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh.4          veh            veh.4            -                
+
+55.13       veh            state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+55.13       veh            state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh.4          veh            veh.4            -                
+
+57.12       veh.4          state_waitForCatchup          state_sendMergeDone           -              -              -              -                -                
+57.12       veh.4          state_sendMergeDone           state_platoonFollower         MERGE_DONE     veh            veh            veh              Merge_End        
+
+57.18       veh            state_waitForMergeDone        state_mergeDone               -              -              -              -                -                
+57.18       veh            state_mergeDone               state_platoonLeader           -              -              -              -                -                

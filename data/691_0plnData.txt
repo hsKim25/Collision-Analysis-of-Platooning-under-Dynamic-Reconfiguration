@@ -1,0 +1,101 @@
+configName      Platooning
+iniFile         omnetpp.ini
+processID       5277
+runID           Platooning-0-20191231-11:26:44-5277
+totalRun        3
+currentRun      0
+currentConfig   Platooning
+sim timeStep    100 ms
+startDateTime   2019-12-31 11:26:44.450
+endDateTime     2019-12-31 11:26:59.450
+duration        0 hour, 0 minute, 15 second
+
+
+timeStep    vehId          fromState                     toState                       commandSent    receiverId     senderPltId    receiverPltId    maneuverStartEnd 
+
+
+0.00        veh            state_idle                    state_platoonLeader           -              -              -              -                -                
+
+0.00        veh.1          state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh.2          state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh1           state_idle                    state_platoonLeader           -              -              -              -                -                
+
+0.00        veh1.1         state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh1.2         state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh1.3         state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh1.4         state_idle                    state_platoonFollower         -              -              -              -                -                
+
+0.00        veh1           state_platoonLeader           state_sendSplitReq            -              -              -              -                -                
+0.00        veh1           state_sendSplitReq            state_waitForSplitReply       SPLIT_REQ      veh1.4         veh1           veh1             -                
+
+0.05        veh1.4         state_platoonFollower         state_waitForCHANGEPL         SPLIT_ACCEPT   veh1           veh1           veh1             -                
+
+0.12        veh1           state_waitForSplitReply       state_makeItFreeAgent         -              -              -              -                Split_Start      
+0.12        veh1           state_makeItFreeAgent         state_waitForAck              CHANGE_PL      veh1.4         veh1           veh1             -                
+
+0.16        veh1.4         state_waitForCHANGEPL         state_sendingACK              -              -              -              -                -                
+0.16        veh1.4         state_sendingACK              state_waitForSplitDone        ACK            veh1           veh1.4         veh1.4           -                
+
+0.16        veh1           state_waitForAck              state_splitDone               -              -              -              -                -                
+0.16        veh1           state_splitDone               state_platoonLeader           CHANGE_Tg      multicast      veh1           veh1             -                
+0.16        veh1           state_splitDone               state_platoonLeader           SPLIT_DONE     veh1.4         veh1           veh1             -                
+
+0.19        veh1.4         state_waitForSplitDone        state_waitForGap              -              -              -              -                -                
+
+0.29        veh1.4         state_waitForGap              state_platoonLeader           GAP_CREATED    veh1           veh1.4         veh1             Split_End        
+
+25.09       veh1.4         state_platoonLeader           state_sendMergeReq            -              -              -              -                -                
+25.09       veh1.4         state_sendMergeReq            state_waitForMergeReply       MERGE_REQ      veh1           veh1.4         veh1             Merge_Request    
+
+25.14       veh1           state_platoonLeader           state_sendMergeAccept         -              -              -              -                -                
+25.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+25.18       veh1.4         state_waitForMergeReply       state_mergeAccepted           -              -              -              -                Merge_Start      
+25.18       veh1.4         state_mergeAccepted           state_waitForCatchup          -              -              -              -                -                
+
+30.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+30.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+35.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+35.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+40.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+40.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+45.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+45.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+50.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+50.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+55.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+55.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+60.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+60.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+65.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+65.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+70.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+70.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+75.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+75.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+80.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+80.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+85.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+85.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+90.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+90.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
+
+95.14       veh1           state_waitForMergeDone        state_sendMergeAccept         -              -              -              -                -                
+95.14       veh1           state_sendMergeAccept         state_waitForMergeDone        MERGE_ACCEPT   veh1.4         veh1           veh1.4           -                
