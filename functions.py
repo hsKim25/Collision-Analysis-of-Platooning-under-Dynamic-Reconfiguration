@@ -2,7 +2,7 @@ from classes import *
 import math
 
 
-#return: vehdict, lanedict, col_info_list
+# return: vehdict, lanedict, col_info_list
 def readtxt_VehData(fnum, varlist):
     f = open("data/" + str(fnum) + "_0vehicleData.txt", 'r')
     lines = f.readlines()
@@ -71,7 +71,7 @@ def readtxt_VehData(fnum, varlist):
 
     return vehdict, lanedict, collision_info_list
 
-#return: platoon_history
+# return: platoon_history
 def readtxt_InConfigData(fnum):
     f = open("data/" + str(fnum) + "_0plnConfig.txt", 'r')
     lines = f.readlines()
@@ -100,7 +100,7 @@ def readtxt_InConfigData(fnum):
 
     return platoon_history
 
-#return: target_veh_platoon_history
+# return: target_veh_platoon_history List((Time, List(plt_veh)))
 def tracking_plt_history_for_target_veh(target_veh, structure_history):
     history = []
     start = 0
@@ -128,54 +128,38 @@ def tracking_plt_history_for_target_veh(target_veh, structure_history):
                     start = current
                     end = current
 
-    last_platoon = history[-1][1][:]
-    last_platoon.remove(target_veh)
+    if len(history) != 0:
+        last_platoon = history[-1][1][:]
+        last_platoon.remove(target_veh)
 
-    #Leave 확인
-    if last_ind != len(structure_history) - 1:
-        for tick in structure_history[last_ind+1:]:
-            for platoon in tick[1]:
-                for veh in last_platoon:
-                    if veh in platoon:
-                        history.append((tick[0], "Leave"))
-                        return history
+        #Leave 확인
+        if last_ind != len(structure_history) - 1:
+            for tick in structure_history[last_ind+1:]:
+                for platoon in tick[1]:
+                    for veh in last_platoon:
+                        if veh in platoon:
+                            history.append((tick[0], "Leave"))
+                            return history
 
     return history
 
-#return: time period that should be analyzed
-def getTimeScope(col_time, plt_history):
-    for i in range(len(plt_history) - 1):
-        if plt_history[i][0] < col_time <= plt_history[i + 1][0]:
-            return [plt_history[i][0], col_time]
-
-
-#return: Collision type
-def collision_classification(col_veh1, col_veh2, time):
-    if "flow" in col_veh1:
-        if "flow" in col_veh2:
-            return "env-env"
-
-
-#Select relatively important vehicles based on three distance
-#def grouping(structure_history, lane_history, target_veh, time):
-
-
-#Calculate the order distance in the platoon vehicles
-def structure_distance(col_veh, target_veh, time, structure_history):
-    prev_history = None
+# Calculate the order distance in the platoon vehicles
+def structure_distance(base_veh, target_veh, time, structure_history):
+    prev_history = []
     for change_point in structure_history:
         if time >= change_point[0]:
             prev_history = change_point[1]
         else:
             break
-
-    if target_veh in prev_history:
-        return abs(prev_history.index(col_veh) - prev_history.index(target_veh))
+    if prev_history == "Leave":
+        return -1
+    elif target_veh in prev_history:
+        return abs(prev_history.index(base_veh) - prev_history.index(target_veh))
     else:
         return -1
 
-#Calculate the order distance in the lane
-def lane_distance(col_veh, target_veh, time, lane_history):
+# Calculate the order distance in the lane
+def lane_distance(base_veh, target_veh, time, lane_history):
     prev_history = None
     for tick in lane_history:
         if time >= tick[0]:
@@ -184,12 +168,12 @@ def lane_distance(col_veh, target_veh, time, lane_history):
             break
 
     if target_veh in prev_history:
-        return abs(prev_history.index(col_veh) - prev_history.index(target_veh))
+        return abs(prev_history.index(base_veh) - prev_history.index(target_veh))
     else:
         return -1
 
-#Calculate the position distance in the lane
-def position_distance(col_veh, target_veh, time, lane_history):
+# Calculate the position distance in the lane
+def position_distance(base_veh, target_veh, time, lane_history):
     prev_history = None
     for tick in lane_history:
         if time >= tick[0]:
@@ -199,9 +183,51 @@ def position_distance(col_veh, target_veh, time, lane_history):
 
     veh_list = list(map(lambda x: x[0], prev_history))
     if target_veh in veh_list:
-        return abs(prev_history[veh_list.index(col_veh)][1]-prev_history[veh_list.index(target_veh)][1])
+        return abs(prev_history[veh_list.index(base_veh)][1] - prev_history[veh_list.index(target_veh)][1])
     else:
         return -1
+
+# Find front vehs based on lane_history at the specific time
+def get_front_veh(base_veh, time, lane):
+    lane_info = lane.getperiodinfo(time, time)[0]
+    print("Lane information: ", lane_info)
+
+    front_veh_list = []
+    for i in range(len(lane_info[1])):
+        if lane_info[1][i][0] == base_veh:
+            front_veh_list = lane_info[1][i+1:]
+            break
+
+    print("Front vehicle list: ", front_veh_list)
+    return front_veh_list
+
+# Calculate the structure, lane composite distance
+#def structure_lane_composite_distance(base_veh, time, lane_history):
+
+
+
+
+
+
+
+# return: time period that should be analyzed
+def getTimeScope(col_time, plt_history):
+    for i in range(len(plt_history) - 1):
+        if plt_history[i][0] < col_time <= plt_history[i + 1][0]:
+            return [plt_history[i][0], col_time]
+
+
+# return: Collision type
+def collision_classification(col_veh1, col_veh2, time):
+    if "flow" in col_veh1:
+        if "flow" in col_veh2:
+            return "env-env"
+
+
+# Select relatively important vehicles based on three distance
+#def grouping(structure_history, lane_history, target_veh, time):
+
+
 
 
 
