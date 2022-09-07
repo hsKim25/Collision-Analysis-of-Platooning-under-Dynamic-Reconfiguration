@@ -49,6 +49,7 @@ def readtxt_VehData(fnum, varlist):
                     time = vehdict[collision_vehicle].getValues("timeStamp")[-1]
                     difference = math.inf
                     closest_vehicle = None
+                    closest_vehicle_timeindex = None
                     closest_veh_info = []
                     for vehid in prev_index_veh_list: #사라진 차량과 가장 근접한 차량 찾기
                         if vehid == collision_vehicle:
@@ -58,10 +59,10 @@ def readtxt_VehData(fnum, varlist):
                             if abs(vehdict[collision_vehicle].getValues("lanepos")[-1] - vehdict[vehid].getValues("lanepos")[timeindex]) < difference:
                                 difference = abs(vehdict[collision_vehicle].getValues("lanepos")[-1] - vehdict[vehid].getValues("lanepos")[timeindex])
                                 closest_vehicle = vehid
+                                closest_vehicle_timeindex = timeindex
 
                     for variable in varlist:
-                        closest_veh_info.append(vehdict[closest_vehicle].getValues(variable)[timeindex])
-
+                        closest_veh_info.append(vehdict[closest_vehicle].getValues(variable)[closest_vehicle_timeindex])
                     collision_info_list.append((col_veh_info[0], col_veh_info[1], collision_vehicle, closest_vehicle))
 
             prev_index_veh_list = current_index_veh_list
@@ -202,13 +203,20 @@ def get_front_veh(base_veh, time, lane):
     return front_veh_list
 
 # Calculate the structure, lane composite distance
-#def structure_lane_composite_distance(base_veh, time, lane_history):
+def structure_lane_composite_distance(base_veh, time, ordered_veh_list, structure_history):
+    ordered_veh_numbering = []
+    cnt = 0
+    for veh in ordered_veh_list:
+        current_veh_structure_history = tracking_plt_history_for_target_veh(base_veh, structure_history)
+        str_dist = structure_distance(base_veh, veh[0], time, current_veh_structure_history)
+        if str_dist == -1:
+            cnt += 1
+        ordered_veh_numbering.append(cnt)
+        base_veh = veh[0]
 
+    print("Front vehicle numbering: ", ordered_veh_numbering)
 
-
-
-
-
+    return ordered_veh_numbering
 
 # return: time period that should be analyzed
 def getTimeScope(col_time, plt_history):

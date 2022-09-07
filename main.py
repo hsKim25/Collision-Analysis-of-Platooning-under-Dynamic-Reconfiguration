@@ -1,10 +1,12 @@
 from functions import *
+import pandas as pd
 
+filename = 'COLLISION_Cases.xlsx'
+col_file = pd.read_excel("data/" + filename, sheet_name='Falselog', engine='openpyxl')
+print(col_file['file'])
+col_file_num = list(map(lambda x: int(x[0:4]), col_file['file']))
 
-start_num = 2791
-end_num = 2791
-
-for filenum in range(start_num, end_num + 1):
+for filenum in col_file_num:
     try:
         vehdict, lanedict, col_info = readtxt_VehData(filenum, ["timeStamp", "lane", "lanepos", "speed", "accel"])
         print("Collision Information: ", col_info)
@@ -25,21 +27,15 @@ for filenum in range(start_num, end_num + 1):
                 behind_veh = col_veh2
 
             front_veh_list = get_front_veh(behind_veh.vehid, col_time, col_lane)
+            front_veh_numbering = structure_lane_composite_distance(behind_veh.vehid, col_time, front_veh_list, structure_history)
 
-            front_veh_numbering = []
-            base_veh = behind_veh.vehid
-            cnt = 0
-            for veh in front_veh_list:
-                current_veh_structure_history = tracking_plt_history_for_target_veh(base_veh, structure_history)
-                str_dist = structure_distance(base_veh, veh[0], col_time, current_veh_structure_history)
-                if str_dist == -1:
-                    cnt += 1
-                front_veh_numbering.append(cnt)
-                base_veh = veh[0]
+            if front_veh_numbering == 0:
+                print("Plt-Plt Collision: ", filenum)
 
-            print(front_veh_numbering)
 
             #timescope = getTimeScope(col_info)
+
+
 
     except FileNotFoundError:
         continue
