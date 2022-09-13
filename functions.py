@@ -218,11 +218,24 @@ def structure_lane_composite_distance(base_veh, time, ordered_veh_list, structur
 
     return ordered_veh_numbering
 
+# Select the vehicles that might be related to the collision
+def select_related_vehicles(front_veh_list, front_veh_numbering, upperbound):
+    try:
+        ind = front_veh_numbering.index(upperbound + 1)
+        return front_veh_list[:ind], front_veh_numbering[:ind]
+    except ValueError:
+        return front_veh_list, front_veh_numbering
+
 # return: time period that should be analyzed
 def getTimeScope(col_time, plt_history):
     for i in range(len(plt_history) - 1):
         if plt_history[i][0] < col_time <= plt_history[i + 1][0]:
             return [plt_history[i][0], col_time]
+
+#
+def generate_group_object(col_veh, veh_list, veh_numbering, vehdict, timescope):
+    current_numbering = 0
+
 
 
 # return: Collision type
