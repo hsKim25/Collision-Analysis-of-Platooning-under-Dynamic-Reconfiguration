@@ -3,10 +3,9 @@ import pandas as pd
 
 filename = 'COLLISION_Cases.xlsx'
 col_file = pd.read_excel("data/" + filename, sheet_name='Falselog', engine='openpyxl')
-print(col_file['file'])
 col_file_num = list(map(lambda x: int(x[0:4]), col_file['file']))
 
-for filenum in col_file_num[857:858]:
+for filenum in col_file_num[31:32]:
     try:
         print("filenum: ", filenum)
         vehdict, lanedict, col_info = readtxt_VehData(filenum, ["timeStamp", "lane", "lanepos", "speed", "accel"])
@@ -33,12 +32,9 @@ for filenum in col_file_num[857:858]:
             upperbound = 2
             col_related_veh_list, col_related_veh_numbering = select_related_vehicles(front_veh_list, front_veh_numbering, upperbound)
 
-
-
-
-            if front_veh_numbering == 0:
-                print("Plt-Plt Collision: ", filenum)
-
+            groups = generate_group_object(behind_veh, col_related_veh_list, col_related_veh_numbering, vehdict, lanedict, (col_time - 10, col_time))
+            groups[1].preprocess(col_lane.lanenum)
+            print(groups[1].lane)
 
             #timescope = getTimeScope(col_info)
 

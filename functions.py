@@ -233,10 +233,69 @@ def getTimeScope(col_time, plt_history):
             return [plt_history[i][0], col_time]
 
 #
-def generate_group_object(col_veh, veh_list, veh_numbering, vehdict, timescope):
-    current_numbering = 0
+def generate_group_object(col_veh, veh_list, veh_numbering, vehdict, lanedict, timescope):
+    groups = []
+    col_veh = Group([col_veh])
+    groups.append(col_veh)
+
+    current_numbering = veh_numbering[0]
+    current_list = []
+    for i in range(len(veh_list)):
+        if current_numbering == veh_numbering[i]:
+            current_list.append(vehdict[veh_list[i][0]])
+        else:
+            new_group = Group(current_list)
+            groups.append(new_group)
+            current_numbering = veh_numbering[i]
+            current_list = [vehdict[veh_list[i][0]]]
+    new_group = Group(current_list)
+    groups.append(new_group)
 
 
+    for i in range(len(groups)):
+        group = groups[i]
+        if len(group.vehlist) == 1:
+            veh = group.vehlist[0]
+            start_ind = veh.vardict["timeStamp"].index(timescope[0])
+            end_ind = veh.vardict["timeStamp"].index(timescope[1])
+            group.timestamp = veh.getValues("timeStamp")[start_ind:end_ind + 1]
+            group.lane = veh.getValues("lane")[start_ind:end_ind + 1]
+            group.capacity = [0 for i in range(end_ind - start_ind)]
+            group.speed = veh.getValues("speed")[start_ind:end_ind + 1]
+
+            for i in range(len(group.timestamp)):
+                lane_info = lanedict[group.lane[i]].getperiodinfo(group.timestamp[i], group.timestamp[i])[0][1]
+                lane_vehs = list(map(lambda x: x[0], lane_info))
+
+                veh_index = lane_vehs.index(veh.vehid)
+                if veh_index != len(lane_vehs) - 1:
+                    group.distance.append(round(lane_info[veh_index + 1][1] - lane_info[veh_index][1], 2))
+                else:
+                    group.distance.append(math.inf)
+
+        else:
+            back_veh = group.vehlist[0]
+            front_veh = group.vehlist[-1]
+            start_ind = front_veh.vardict["timeStamp"].index(timescope[0])
+            end_ind = front_veh.vardict["timeStamp"].index(timescope[1])
+            group.timestamp = front_veh.getValues("timeStamp")[start_ind:end_ind + 1]
+            group.lane = front_veh.getValues("lane")[start_ind:end_ind + 1]
+            group.speed = back_veh.getValues("speed")[start_ind:end_ind + 1]
+
+            for i in range(len(group.timestamp)):
+                lane_info = lanedict[group.lane[i]].getperiodinfo(group.timestamp[i], group.timestamp[i])[0][1]
+                lane_vehs = list(map(lambda x: x[0], lane_info))
+
+                front_veh_index = lane_vehs.index(front_veh.vehid)
+                back_veh_index = lane_vehs.index(back_veh.vehid)
+                print(lane_info[front_veh_index][1], lane_info[back_veh_index][1])
+                group.capacity.append(round(lane_info[front_veh_index][1] - lane_info[back_veh_index][1], 2))
+                if front_veh_index != len(lane_vehs) - 1:
+                    group.distance.append(round(lane_info[front_veh_index + 1][1] - lane_info[front_veh_index][1], 2))
+                else:
+                    group.distance.append(math.inf)
+
+    return groups
 
 # return: Collision type
 def collision_classification(col_veh1, col_veh2, time):
