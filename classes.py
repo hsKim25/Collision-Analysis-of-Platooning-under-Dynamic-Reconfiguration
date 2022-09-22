@@ -1,6 +1,22 @@
-class Platoon:
+class Group:
     def __init__(self, vehlist):
         self.vehlist = vehlist
+        self.timestamp = []
+        self.speed = []
+        self.distance = []
+        self.lane = []
+        self.avg_occupancy = []
+
+    def preprocess(self, col_lane):
+        # 충돌 차선이면 0, 아니면 1
+        for i in range(len(self.lane)):
+            if self.lane[i] == col_lane:
+                self.lane[i] = 0
+            else:
+                self.lane[i] = 1
+
+        min_cap = min(self.avg_occupancy)
+        max_cap = max(self.avg_occupancy)
 
 
 class Vehicle:
@@ -25,7 +41,6 @@ class Vehicle:
         else:
             ind = self.vardict["timeStamp"].index(time)
             return self.vardict[key][ind]
-
 
 class Lane:
     def __init__(self, lanenum):

@@ -4,6 +4,7 @@ import openpyxl
 import pandas as pd
 import os
 import pickle
+from itertools import combinations
 
 # return: vehdict, lanedict, col_info_list
 def readtxt_VehData(fnum, varlist):
@@ -393,21 +394,56 @@ def read_group_xlsx():
 
     return mts_dataset
 
-#
-def preprocess(mts_dataset):
-    min_speed = math.inf
-    max_speed = 0
-    min_distance = math.inf
-    max_distance = 0
-    min_occupancy_ratio = math.inf
-    max_occupancy_ratio = 0
+def preprocess(mts_dataset, distancebound):
+    speed_values = []
+    distance_values = []
+    occupancy_ratio_values = []
+    for mts in mts_dataset:
+        group_num = len(mts[0])//4
+        for i in range(group_num):
+            speed_values += list(map(lambda x: x[4*i], mts))
+            distance_values += [value for value in list(map(lambda x: x[4*i+1], mts)) if value != "inf"]
+            occupancy_ratio_values += list(map(lambda x: x[4*i+3], mts))
 
+    min_speed = min(speed_values)
+    max_speed = max(speed_values)
+    min_distance = min(distance_values)
+    max_distance = max(distance_values)
+    max_distance = distancebound if max_distance > distancebound else max_distance
+    min_occupancy_ratio = min(occupancy_ratio_values)
+    max_occupancy_ratio = max(occupancy_ratio_values)
 
+    for mts in mts_dataset:
+        group_num = len(mts[0])//4
+        for tick in mts:
+            for i in range(group_num):
+                tick[4*i] = (tick[4*i] - min_speed)/(max_speed - min_speed)
+                tick[4*i+3] = (tick[4*i+3] - min_occupancy_ratio)/(max_occupancy_ratio - min_occupancy_ratio)
+                if tick[4*i+1] == "inf" or tick[4*i+1] > distancebound:
+                    tick[4*i+1] = 1
+                else:
+                    tick[4*i+1] = (tick[4*i+1] - min_distance)/(max_distance - min_distance)
 
+    return mts_dataset
 
 # Calculating two MTS with different dimensions
 def calculate_distance_btw_two_MTS(mts1, mts2):
-    return 0
+    dim1 = len(mts1[0])//4
+    dim2 = len(mts2[0])//4
+    if dim1 < dim2:
+        mts1, mts2 = mts2, mts1
+        dim1, dim2 = dim2, dim1
+
+    print(dim1, dim2)
+    matching_combination = [list(x) for x in combinations(range(1,dim1),dim2-1)]
+    for matching_case in matching_combination:
+        cutted_mts = []
+        for tick in mts1:
+            cutted_tick = tick[0:4]
+            for group_num in matching_case:
+                cutted_tick += tick[4*group_num: 4*(group_num+1)]
+            cutted_mts.append(cutted_tick)
+        print(cutted_mts)
 
 
 # return: Collision type
