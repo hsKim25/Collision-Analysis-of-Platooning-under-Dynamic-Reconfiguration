@@ -5,6 +5,12 @@ import pandas as pd
 import os
 import pickle
 from itertools import combinations
+from scipy.spatial import distance
+from tslearn.metrics import dtw, dtw_path, dtw_path_from_metric
+from tslearn.barycenters import dtw_barycenter_averaging
+import random
+import matplotlib.pyplot as plt
+import numpy
 
 # return: vehdict, lanedict, col_info_list
 def readtxt_VehData(fnum, varlist):
@@ -372,11 +378,13 @@ def make_group_xlsx_from_raw_data(filename, compositionbound, distancebound):
 # Read group excel files and generate MTS
 def read_group_xlsx():
     path = 'groupdata/'
-    dir_list = os.listdir(path)
+    dir_list = [file for file in os.listdir(path) if file.endswith('.xlsx')]
 
+    filelist = []
     mts_dataset = []
     for file in dir_list:
         print(file)
+        filelist.append(file[0:4])
         sheet = openpyxl.load_workbook(path + file, data_only = True)['Sheet']
         rows = list(sheet.rows)
 
@@ -390,9 +398,9 @@ def read_group_xlsx():
         mts_dataset.append(mts)
 
     with open('groupdata/mtsdata.pickle', 'wb') as f:
-        pickle.dump(mts_dataset, f)
+        pickle.dump((filelist, mts_dataset), f)
 
-    return mts_dataset
+    return filelist, mts_dataset
 
 def preprocess(mts_dataset, distancebound):
     speed_values = []
@@ -410,15 +418,20 @@ def preprocess(mts_dataset, distancebound):
     min_distance = min(distance_values)
     max_distance = max(distance_values)
     max_distance = distancebound if max_distance > distancebound else max_distance
-    min_occupancy_ratio = min(occupancy_ratio_values)
-    max_occupancy_ratio = max(occupancy_ratio_values)
+    min_avg_occupancy = min(occupancy_ratio_values)
+    max_avg_occupancy = max(occupancy_ratio_values)
+    avg_occupancy_bound = 20
+    max_avg_occupancy = avg_occupancy_bound if max_avg_occupancy > avg_occupancy_bound else max_avg_occupancy
 
     for mts in mts_dataset:
         group_num = len(mts[0])//4
         for tick in mts:
             for i in range(group_num):
                 tick[4*i] = (tick[4*i] - min_speed)/(max_speed - min_speed)
-                tick[4*i+3] = (tick[4*i+3] - min_occupancy_ratio)/(max_occupancy_ratio - min_occupancy_ratio)
+                if tick[4*i+3] > avg_occupancy_bound:
+                    tick[4*i+3] = 1
+                else:
+                    tick[4*i+3] = (tick[4*i+3] - min_avg_occupancy) / (max_avg_occupancy - min_avg_occupancy)
                 if tick[4*i+1] == "inf" or tick[4*i+1] > distancebound:
                     tick[4*i+1] = 1
                 else:
@@ -434,16 +447,126 @@ def calculate_distance_btw_two_MTS(mts1, mts2):
         mts1, mts2 = mts2, mts1
         dim1, dim2 = dim2, dim1
 
-    print(dim1, dim2)
-    matching_combination = [list(x) for x in combinations(range(1,dim1),dim2-1)]
+    matching_combination = [[0] + list(x) for x in combinations(range(1,dim1),dim2-1)]
+    min_distance = math.inf
+    min_matching = None
     for matching_case in matching_combination:
         cutted_mts = []
         for tick in mts1:
-            cutted_tick = tick[0:4]
+            cutted_tick = []
             for group_num in matching_case:
                 cutted_tick += tick[4*group_num: 4*(group_num+1)]
             cutted_mts.append(cutted_tick)
-        print(cutted_mts)
+        distance = mydtw(cutted_mts, mts2)
+        if distance < min_distance:
+            min_distance = distance
+            min_matching = matching_case
+
+    return min_distance, min_matching
+
+# DTW calculation btw 2 MTS with same parameter numbers
+def mydtw(mts1, mts2):
+    array = [[math.inf for j in range(len(mts2)+1)] for i in range(len(mts1)+1)]
+    array[0][0] = 0
+
+    for i in range(1,len(mts1)+1):
+        for j in range(1,len(mts2)+1):
+            cost = distance.euclidean(mts1[i-1], mts2[j-1])
+            array[i][j] = cost + min(array[i-1][j],array[i][j-1],array[i-1][j-1])
+
+    return array[len(mts1)][len(mts2)]
+
+# Return center of mtslist
+def get_barycenter(mtslist, compositionbound):
+    max_dim = 0
+    max_dim_position = None
+    for i in range(len(mtslist)):
+        if len(mtslist[i][0])//4 > max_dim:
+            max_dim = len(mtslist[i][0])//4
+            max_dim_position = [i]
+        elif len(mtslist[i][0])//4 == max_dim:
+            max_dim_position.append(i)
+
+    random_max_dim_position = random.choice(max_dim_position)
+
+    matching_list = []
+    for i in range(len(mtslist)):
+        distance, matching = calculate_distance_btw_two_MTS(mtslist[random_max_dim_position], mtslist[i])
+        matching_list.append(matching)
+
+    barycenter = [[] for i in range(len(mtslist[0]))]
+    for i in range(compositionbound+1):
+        dataset = []
+        for j in range(len(mtslist)):
+            if i in matching_list[j]:
+                ind = matching_list[j].index(i)
+                dataset.append(list(map(lambda x: x[4*ind:4*(ind+1)], mtslist[j])))
+        if len(dataset) != 0:
+            current_composition_distance_center = dtw_barycenter_averaging(dataset, barycenter_size=len(mtslist[0])).tolist()
+            for j in range(len(mtslist[0])):
+                barycenter[j] += current_composition_distance_center[j]
+
+    return barycenter
+
+# Retrun clustered result
+def dtwKMeans(mtslist, numcenter, compositionbound):
+    #initial centers
+    centers = random.sample(mtslist, numcenter)
+
+    errors = [math.inf for i in range(numcenter)]
+    nearest_center_index = [None for i in range(len(mtslist))]
+
+    while len([error for error in errors if error != 0]) >0:
+        for i in range(len(mtslist)):
+            min_index = None
+            min_distance = math.inf
+            for j in range(len(centers)):
+                distance = calculate_distance_btw_two_MTS(centers[j], mtslist[i])[0]
+                if distance < min_distance:
+                    min_index = j
+                    min_distance = distance
+            nearest_center_index[i] = min_index
+
+        #Calculate barycenters
+        for i in range(numcenter):
+            cluster_points = [mtslist[j] for j in range(len(mtslist)) if nearest_center_index[j] == i]
+            if len(cluster_points) != 0:
+                new_center = get_barycenter(cluster_points, compositionbound)
+                errors[i] = calculate_distance_btw_two_MTS(centers[i], new_center)[0]
+                centers[i] = new_center
+            else:
+                errors[i] = 0
+
+        print("Current error: ", errors)
+        print("Current cluster:", nearest_center_index)
+    with open('outputdata/clusterdata.pickle', 'wb') as f:
+        pickle.dump((nearest_center_index, centers), f)
+
+    return nearest_center_index, centers
+
+#
+def visualization(mtslist, cluster_result, centers):
+    for i in range(len(centers)):
+        tick = list(range(len(centers[i])))
+
+        for j in range(len(cluster_result)):
+            if cluster_result[j] == i:
+                matching = calculate_distance_btw_two_MTS(centers[i], mtslist[j])[1]
+                for k in matching:
+                    for m in range(4):
+                        plt.subplot(len(centers[i][0]), 1, 4*k+m+1)
+                        ind = matching.index(k)
+                        value = [x[4*ind+m] for x in mtslist[j]]
+                        plt.ylim(0,1)
+                        plt.plot(tick, value)
+
+        for j in range(len(centers[i][0])):
+            plt.subplot(len(centers[i][0]), 1, j+1)
+            value = [x[j] for x in centers[i]]
+            plt.ylim(0,1)
+            plt.plot(tick, value, 'r', linewidth= 3)
+
+        plt.show()
 
 
 # return: Collision type
