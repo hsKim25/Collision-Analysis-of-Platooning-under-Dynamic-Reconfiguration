@@ -5,8 +5,9 @@ import pickle
 filename = 'COLLISION_Cases.xlsx'
 compositionbound = 2
 distancebound = 200
+timescope = 15
 
-#make_group_xlsx_from_raw_data(filename, compositionbound, distancebound)
+#make_group_xlsx_from_raw_data(filename, compositionbound, distancebound, timescope)
 
 #filelist, MTS_dataset = read_group_xlsx()
 
@@ -16,7 +17,7 @@ print("FileList: ", filelist)
 
 MTS_dataset_preprocessed = preprocess(MTS_dataset[:], distancebound)
 
-cluster_result, centers = dtwKMeans(MTS_dataset_preprocessed, 10, compositionbound)
+cluster_result, centers = dtwKMeans(MTS_dataset_preprocessed, 5, compositionbound)
 
 with open('outputdata/clusterdata.pickle', 'rb') as f:
     nearest_center_index, centers = pickle.load(f)
@@ -24,3 +25,4 @@ with open('outputdata/clusterdata.pickle', 'rb') as f:
 print(nearest_center_index)
 
 visualization(MTS_dataset_preprocessed, nearest_center_index, centers)
+

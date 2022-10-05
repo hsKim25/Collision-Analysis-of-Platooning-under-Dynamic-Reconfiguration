@@ -1,7 +1,6 @@
 from classes import *
 import math
 import openpyxl
-import pandas as pd
 import os
 import pickle
 from itertools import combinations
@@ -337,11 +336,16 @@ def write_group_object_to_xlsx(fnum, groups):
     wb.save('groupdata/' + str(fnum) + '_groupData.xlsx')
 
 # Generating excel files that contains group data from initail raw data
-def make_group_xlsx_from_raw_data(filename, compositionbound, distancebound):
-    col_file = pd.read_excel("data/" + filename, sheet_name='Falselog', engine='openpyxl')
-    col_file_num = list(map(lambda x: int(x[0:4]), col_file['file']))
+def make_group_xlsx_from_raw_data(filename, compositionbound, distancebound, timescope):
+    wb = openpyxl.load_workbook("data/" + filename, data_only = True)
+    sheet = wb['Falselog']
+    col_file_num = []
+    for row in list(sheet.rows)[1:]:
+        filenum = row[0].value[0:4]
+        print(filenum)
+        col_file_num.append(filenum)
+        row_num = row[0].row
 
-    for filenum in col_file_num[534:]:
         try:
             print("filenum: ", filenum)
             vehdict, lanedict, col_info = readtxt_VehData(filenum, ["timeStamp", "lane", "lanepos", "speed", "accel"])
@@ -355,6 +359,8 @@ def make_group_xlsx_from_raw_data(filename, compositionbound, distancebound):
                 col_lane = lanedict[first_col[1]]
                 col_veh1 = vehdict[first_col[2]]
                 col_veh2 = vehdict[first_col[3]]
+                sheet.cell(row=row_num, column=7).value = first_col[2]
+                sheet.cell(row=row_num, column=8).value = first_col[3]
                 col_veh1_pos = col_veh1.getValues("lanepos", col_time)
                 col_veh2_pos = col_veh2.getValues("lanepos", col_time)
 
@@ -363,17 +369,23 @@ def make_group_xlsx_from_raw_data(filename, compositionbound, distancebound):
                     behind_veh = col_veh2
 
                 front_veh_list = get_front_veh(behind_veh.vehid, col_time, col_lane)
+
                 front_veh_numbering = structure_lane_composite_distance(behind_veh.vehid, col_time, front_veh_list, structure_history)
 
                 col_related_veh_list, col_related_veh_numbering = select_related_vehicles(front_veh_list, front_veh_numbering, compositionbound, distancebound)
-
                 print(col_related_veh_list)
-                groups = generate_group_object(behind_veh, col_related_veh_list, col_related_veh_numbering, vehdict, lanedict, (round(col_time - 15, 1), col_time), col_lane)
 
-                write_group_object_to_xlsx(filenum, groups)
+                plt_relation = plt_relation_check(behind_veh.vehid, col_related_veh_list)
+                sheet.cell(row=row_num, column=9).value = plt_relation
+
+                if plt_relation:
+                    groups = generate_group_object(behind_veh, col_related_veh_list, col_related_veh_numbering, vehdict, lanedict, (round(col_time - timescope, 1), col_time), col_lane)
+
+                    write_group_object_to_xlsx(filenum, groups)
 
         except FileNotFoundError:
             continue
+    wb.save("data/" + filename)
 
 # Read group excel files and generate MTS
 def read_group_xlsx():
@@ -420,7 +432,7 @@ def preprocess(mts_dataset, distancebound):
     max_distance = distancebound if max_distance > distancebound else max_distance
     min_avg_occupancy = min(occupancy_ratio_values)
     max_avg_occupancy = max(occupancy_ratio_values)
-    avg_occupancy_bound = 20
+    avg_occupancy_bound = 15
     max_avg_occupancy = avg_occupancy_bound if max_avg_occupancy > avg_occupancy_bound else max_avg_occupancy
 
     for mts in mts_dataset:
@@ -438,6 +450,41 @@ def preprocess(mts_dataset, distancebound):
                     tick[4*i+1] = (tick[4*i+1] - min_distance)/(max_distance - min_distance)
 
     return mts_dataset
+
+def preprocess_znorm(mts_dataset, distancebound):
+    speed_values = []
+    distance_values = []
+    lane_values = []
+    occupancy_ratio_values = []
+
+    for mts in mts_dataset:
+        group_num = len(mts[0])//4
+        for i in range(group_num):
+            speed_values += list(map(lambda x: x[4*i], mts))
+            distance_values += [min(value, distancebound) for value in list(map(lambda x: x[4*i+1], mts))]
+            lane_values += list(map(lambda x: x[4*i+2], mts))
+            occupancy_ratio_values += list(map(lambda x: x[4*i+3], mts))
+
+    mean_speed = numpy.mean(speed_values)
+    mean_distance = numpy.mean(distance_values)
+    mean_lane = numpy.mean(lane_values)
+    mean_occupancy_ratio = numpy.mean(occupancy_ratio_values)
+    std_speed = numpy.std(speed_values)
+    std_distance = numpy.std(distance_values)
+    std_lane = numpy.std(lane_values)
+    std_occupancy_ratio = numpy.std(occupancy_ratio_values)
+
+    for mts in mts_dataset:
+        group_num = len(mts[0])//4
+        for tick in mts:
+            for i in range(group_num):
+                tick[4*i] = (tick[4*i] - mean_speed)/std_speed
+                tick[4*i+1] = (tick[4*i+1] - mean_distance)/std_distance
+                tick[4*i+2] = (tick[4*i+2] - mean_lane)/std_lane
+                tick[4*i+3] = (tick[4*i+3] - mean_occupancy_ratio)/std_occupancy_ratio
+
+    return mts_dataset
+
 
 # Calculating two MTS with different dimensions
 def calculate_distance_btw_two_MTS(mts1, mts2):
@@ -526,7 +573,7 @@ def dtwKMeans(mtslist, numcenter, compositionbound):
                     min_index = j
                     min_distance = distance
             nearest_center_index[i] = min_index
-
+        print(nearest_center_index)
         #Calculate barycenters
         for i in range(numcenter):
             cluster_points = [mtslist[j] for j in range(len(mtslist)) if nearest_center_index[j] == i]
@@ -558,22 +605,30 @@ def visualization(mtslist, cluster_result, centers):
                         ind = matching.index(k)
                         value = [x[4*ind+m] for x in mtslist[j]]
                         plt.ylim(0,1)
-                        plt.plot(tick, value)
+                        plt.plot(tick, value, linewidth = 0.5)
 
         for j in range(len(centers[i][0])):
             plt.subplot(len(centers[i][0]), 1, j+1)
             value = [x[j] for x in centers[i]]
             plt.ylim(0,1)
-            plt.plot(tick, value, 'r', linewidth= 3)
+            plt.plot(tick, value, 'r', linewidth= 2)
 
-        plt.show()
+        plt.savefig('outputdata/cluster_' + str(i) + '_mts_figure.png', dpi = 400)
+        plt.clf()
+        #plt.show()
 
 
 # return: Collision type
-def collision_classification(col_veh1, col_veh2, time):
-    if "flow" in col_veh1:
-        if "flow" in col_veh2:
-            return "env-env"
+def plt_relation_check(behind_vehid, front_veh_list):
+    if 'veh' in behind_vehid:
+        return True
+    else:
+        front_vehid_list = list(map(lambda x: x[0], front_veh_list))
+        print(front_vehid_list)
+        for veh in front_vehid_list:
+            if 'veh' in veh:
+                return True
+        return False
 
 # return: time period that should be analyzed
 def getTimeScope(col_time, plt_history):
